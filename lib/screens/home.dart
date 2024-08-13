@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:pass_mgr/screens/edit_form.dart';
 import 'package:pass_mgr/utils/constans.dart';
 import 'package:pass_mgr/utils/functions.dart';
 import 'package:pass_mgr/utils/hive_services.dart';
+import 'package:pass_mgr/widgets/edit_form.dart';
+import 'package:pass_mgr/widgets/password_form.dart';
 
 import '../models/item.dart';
 import '../widgets/item_form.dart';
@@ -18,15 +19,26 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   List<Item> items = [];
+  List<bool> showPasswords = [];
   var itemsBox;
   final HiveServices _hiveServices = HiveServices();
 
   bool isLoading = false;
 
+  authorizeMethod(BuildContext context, Size size,
+      {required String task}) async {
+    return await showModalBottomSheet(
+      context: context,
+      builder: (context) => PasswordForm(
+        size: size,
+        task: task,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     var size = MediaQuery.of(context).size;
-    bool passwordObscured = true;
     return Scaffold(
       backgroundColor: bgGrey,
       bottomNavigationBar: BottomNavigationBar(
@@ -118,18 +130,52 @@ class _HomePageState extends State<HomePage> {
                               items[index].title,
                               style: titleStyle1,
                             ),
-                            subtitle: TextButton(
-                              onPressed: () {
-                                passwordObscured = !passwordObscured;
-                              },
-                              child: Text(
-                                passwordObscured
-                                    ? obscuredPassword
-                                    : items[index].password,
-                                style: titleStyle1.copyWith(
-                                  fontWeight: FontWeight.w700,
+                            subtitle: Row(
+                              children: [
+                                Text(
+                                  textAlign: TextAlign.start,
+                                  showPasswords[index]
+                                      ? items[index].password
+                                      : obscuredPassword,
+                                  style: titleStyle1.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
-                              ),
+                                IconButton(
+                                  onPressed: () async {
+                                    if (!showPasswords[index]) {
+                                      bool isAuthorized =
+                                          await showModalBottomSheet(
+                                        context: context,
+                                        builder: (context) => PasswordForm(
+                                          size: size,
+                                          task: "Show Password",
+                                        ),
+                                      );
+                                      if (isAuthorized) {
+                                        displaySnackbar(
+                                          context,
+                                          "authorized",
+                                        );
+                                        setState(() {
+                                          showPasswords[index] = true;
+                                        });
+                                      }
+                                    } else {
+                                      setState(() {
+                                        showPasswords[index] = false;
+                                      });
+                                    }
+                                  },
+                                  icon: Icon(
+                                    showPasswords[index]
+                                        ? FontAwesomeIcons.eyeSlash
+                                        : FontAwesomeIcons.eye,
+                                    size: 14,
+                                    weight: 50,
+                                  ),
+                                ),
+                              ],
                             ),
                             trailing: SizedBox(
                               width: 150,
@@ -138,27 +184,52 @@ class _HomePageState extends State<HomePage> {
                                   iconButton(
                                     index: index,
                                     size: size,
-                                    onPress: () {
-                                      Clipboard.setData(
-                                        ClipboardData(
-                                          text: items[index].password,
+                                    onPress: () async {
+                                      bool isAuthorized =
+                                          await showModalBottomSheet(
+                                        context: context,
+                                        builder: (context) => PasswordForm(
+                                          size: size,
+                                          task: "Copy To Clipboard",
                                         ),
                                       );
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                              "Password copied to clipboard."),
-                                        ),
-                                      );
+                                      if (isAuthorized) {
+                                        Clipboard.setData(
+                                          ClipboardData(
+                                            text: items[index].password,
+                                          ),
+                                        );
+
+                                        displaySnackbar(
+                                          context,
+                                          "Password copied to clipboard.",
+                                        );
+                                      } else {
+                                        displaySnackbar(
+                                          context,
+                                          "Not Authorized! Cannot copy to clipboard.",
+                                        );
+                                      }
                                     },
                                     iconData: FontAwesomeIcons.copy,
                                   ),
                                   iconButton(
                                     index: index,
                                     size: size,
-                                    onPress: () {
-                                      editItem(items[index], size);
+                                    onPress: () async {
+                                      bool isAuthorized = await authorizeMethod(
+                                        context,
+                                        size,
+                                        task: "Edit Password",
+                                      );
+                                      if (isAuthorized) {
+                                        editItem(items[index], size);
+                                      } else {
+                                        displaySnackbar(
+                                          context,
+                                          "Not authorized!, cannot edit",
+                                        );
+                                      }
                                     },
                                     iconData: FontAwesomeIcons.penToSquare,
                                   ),
@@ -166,22 +237,21 @@ class _HomePageState extends State<HomePage> {
                                     index: index,
                                     size: size,
                                     color: mainRed,
-                                    onPress: () {
-                                      Item deletedItem = items[index];
-                                      items.remove(items[index]);
-                                      _hiveServices
-                                          .deleteFromHive(items[index]);
-                                      setState(() {});
-                                      displayRemoveSnackbar(
+                                    onPress: () async {
+                                      bool isAuthored = await authorizeMethod(
                                         context,
-                                        deletedItem,
-                                        "Item successfully removed",
-                                        () {
-                                          items.add(deletedItem);
-                                          _hiveServices.addToHive(deletedItem);
-                                          setState(() {});
-                                        },
+                                        size,
+                                        task: "Delete Item",
                                       );
+                                      if (isAuthored) {
+                                        deleteMethod(
+                                            items[index], index, context);
+                                      } else {
+                                        displaySnackbar(
+                                          context,
+                                          "Not authorized!. cannot delete",
+                                        );
+                                      }
                                     },
                                     iconData: FontAwesomeIcons.trashCan,
                                   ),
@@ -197,6 +267,29 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  void deleteMethod(Item item, int index, BuildContext context) {
+    bool stillDeleted = true;
+    Item deletedItem = items[index];
+    setState(() {
+      items.removeAt(index);
+    });
+    displayRemoveSnackbar(
+      context,
+      deletedItem,
+      "Item successfully removed",
+      () {
+        stillDeleted = false;
+        setState(() {
+          items.insert(index, deletedItem);
+        });
+        ScaffoldMessenger.of(context).removeCurrentSnackBar();
+      },
+    );
+    if (stillDeleted) {
+      _hiveServices.deleteFromHive(deletedItem);
+    }
+  }
+
   editItem(Item item, Size size) async {
     Item? newItem = await showModalBottomSheet<Item>(
       context: context,
@@ -209,8 +302,10 @@ class _HomePageState extends State<HomePage> {
     if (newItem != null) {
       print("title: ${newItem.title}, pass: ${newItem.password}");
       var index = items.indexOf(item);
-      items.removeAt(index);
-      items.insert(index, newItem);
+      setState(() {
+        items.removeAt(index);
+        items.insert(index, newItem);
+      });
 
       _hiveServices.updateInHive(newItem);
     }
@@ -247,7 +342,9 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         items = newItems;
       });
-
+      for (int i = 0; i < items.length; i++) {
+        showPasswords.add(false);
+      }
       setState(() {
         isLoading = false;
       });

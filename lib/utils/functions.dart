@@ -64,7 +64,6 @@ bool displayRemoveSnackbar(
 
 void displaySnackbar(
   BuildContext context,
-  Item item,
   String message,
 ) {
   ScaffoldMessenger.of(context).removeCurrentSnackBar();
