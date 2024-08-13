@@ -105,7 +105,7 @@ class _HomePageState extends State<HomePage> {
                   : ListView.builder(
                       itemCount: items.length,
                       itemBuilder: (context, index) {
-                        String passwordObscure = items[index]
+                        String obscuredPassword = items[index]
                             .password
                             .characters
                             .map((char) => "*")
@@ -124,8 +124,8 @@ class _HomePageState extends State<HomePage> {
                               },
                               child: Text(
                                 passwordObscured
-                                    ? items[index].password
-                                    : passwordObscure,
+                                    ? obscuredPassword
+                                    : items[index].password,
                                 style: titleStyle1.copyWith(
                                   fontWeight: FontWeight.w700,
                                 ),
