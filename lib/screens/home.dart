@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:pass_mgr/screens/edit_form.dart';
 import 'package:pass_mgr/utils/constans.dart';
 import 'package:pass_mgr/utils/functions.dart';
 import 'package:pass_mgr/utils/hive_services.dart';
@@ -25,6 +26,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     var size = MediaQuery.of(context).size;
+    bool passwordObscured = true;
     return Scaffold(
       backgroundColor: bgGrey,
       bottomNavigationBar: BottomNavigationBar(
@@ -116,10 +118,17 @@ class _HomePageState extends State<HomePage> {
                               items[index].title,
                               style: titleStyle1,
                             ),
-                            subtitle: Text(
-                              passwordObscure,
-                              style: titleStyle1.copyWith(
-                                fontWeight: FontWeight.w700,
+                            subtitle: TextButton(
+                              onPressed: () {
+                                passwordObscured = !passwordObscured;
+                              },
+                              child: Text(
+                                passwordObscured
+                                    ? items[index].password
+                                    : passwordObscure,
+                                style: titleStyle1.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                             ),
                             trailing: SizedBox(
@@ -150,7 +159,6 @@ class _HomePageState extends State<HomePage> {
                                     size: size,
                                     onPress: () {
                                       editItem(items[index], size);
-                                      _hiveServices.updateInHive(items[index]);
                                     },
                                     iconData: FontAwesomeIcons.penToSquare,
                                   ),
@@ -189,21 +197,23 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  editItem(Item item, Size size) {
-    showModalBottomSheet<Item>(
+  editItem(Item item, Size size) async {
+    Item? newItem = await showModalBottomSheet<Item>(
       context: context,
-      builder: (context) => ItemForm(
-        isEdit: true,
+      builder: (context) => EditForm(
         size: size,
-        onAddItem: (item) {},
-        onEditItem: (newItem, oldItem) {
-          var index = items.indexOf(oldItem);
-          items.removeAt(index);
-          items.insert(index, newItem);
-          //setState(() {});
-        },
+        oldItem: item,
       ),
     );
+
+    if (newItem != null) {
+      print("title: ${newItem.title}, pass: ${newItem.password}");
+      var index = items.indexOf(item);
+      items.removeAt(index);
+      items.insert(index, newItem);
+
+      _hiveServices.updateInHive(newItem);
+    }
   }
 
   IconButton iconButton({

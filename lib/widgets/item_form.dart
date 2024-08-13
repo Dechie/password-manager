@@ -1,26 +1,21 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 
 import '../models/item.dart';
 import '../utils/constans.dart';
+import '../utils/functions.dart';
 
 class ItemForm extends StatefulWidget {
   final Size size;
 
   final void Function(Item item) onAddItem;
-  void Function(Item newItem, Item oldItem)? onEditItem;
   String title;
   String password;
-  bool isEdit;
   ItemForm({
     super.key,
     required this.size,
     required this.onAddItem,
     this.title = "",
     this.password = "",
-    this.isEdit = false,
-    this.onEditItem,
   });
 
   @override
@@ -101,9 +96,7 @@ class _ItemFormState extends State<ItemForm> {
                         onPress: () {
                           Item aNewItem =
                               Item(title: title, password: password);
-                          widget.isEdit
-                              ? widget.onEditItem!(aNewItem, oldItem!)
-                              : widget.onAddItem(aNewItem);
+                          widget.onAddItem(aNewItem);
                           Navigator.pop(context);
                         },
                         label: "Add",
@@ -167,56 +160,8 @@ class _ItemFormState extends State<ItemForm> {
     );
   }
 
-  ElevatedButton commonButton({
-    required void Function() onPress,
-    required String label,
-    required double width,
-  }) {
-    return ElevatedButton(
-      style: ButtonStyle(
-        backgroundColor: const WidgetStatePropertyAll<Color>(mainRed),
-        fixedSize: WidgetStatePropertyAll<Size>(Size(width, 40)),
-      ),
-      onPressed: onPress,
-      child: Text(
-        label,
-        style: titleStyle1.copyWith(
-          color: Colors.white,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-
-  String generatePassword() {
-    String upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    String lower = 'abcdefghijklmnopqrstuvwxyz';
-    String numbers = '1234567890';
-    String symbols = '!@#\$%^&*()<>,./';
-    int passLength = 8;
-    String seed = upper + lower + numbers + symbols;
-    String password = '';
-    List<String> list = seed.split('').toList();
-    Random rand = Random();
-
-    for (int i = 0; i < passLength; i++) {
-      int index = rand.nextInt(list.length);
-      password += list[index];
-    }
-    print("current generated: $password");
-    return password;
-  }
-
   @override
   void initState() {
     super.initState();
-    title = widget.title;
-    password = widget.password;
-    _titleController.text = title;
-    _passwordController.text = password;
-    oldItem = Item(
-      title: title,
-      password: password,
-    );
   }
 }
