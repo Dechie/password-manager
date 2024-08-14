@@ -25,7 +25,7 @@ class _HomePageState extends State<HomePage> {
 
   bool isLoading = false;
 
-  authorizeMethod(BuildContext context, Size size,
+  Future<bool> authorizeMethod(BuildContext context, Size size,
       {required String task}) async {
     return await showModalBottomSheet(
       context: context,
@@ -71,6 +71,7 @@ class _HomePageState extends State<HomePage> {
                 onAddItem: (item) {
                   items.add(item);
                   _hiveServices.addToHive(item);
+                  showPasswords.add(false);
                   setState(() {});
                 },
               ),
@@ -194,7 +195,7 @@ class _HomePageState extends State<HomePage> {
                                     index: index,
                                     size: size,
                                     onPress: () async {
-                                      bool isAuthorized = authorizeMethod(
+                                      bool isAuthorized = await authorizeMethod(
                                         context,
                                         size,
                                         task: "Copy To Clipboard",
@@ -211,10 +212,12 @@ class _HomePageState extends State<HomePage> {
                                           "Password copied to clipboard.",
                                         );
                                       } else {
-                                        displaySnackbar(
-                                          context,
-                                          "Not Authorized! Cannot copy to clipboard.",
-                                        );
+                                        if (context.mounted) {
+                                          displaySnackbar(
+                                            context,
+                                            "Not Authorized! Cannot copy to clipboard.",
+                                          );
+                                        }
                                       }
                                     },
                                     iconData: FontAwesomeIcons.copy,
@@ -280,7 +283,9 @@ class _HomePageState extends State<HomePage> {
   void deleteMethod(Item item, int index, BuildContext context) {
     bool stillDeleted = true;
     Item deletedItem = items[index];
+
     setState(() {
+      showPasswords.removeAt(index);
       items.removeAt(index);
     });
     displayRemoveSnackbar(
@@ -291,6 +296,7 @@ class _HomePageState extends State<HomePage> {
         stillDeleted = false;
         setState(() {
           items.insert(index, deletedItem);
+          showPasswords.insert(index, false);
         });
         ScaffoldMessenger.of(context).removeCurrentSnackBar();
       },
