@@ -1,17 +1,6 @@
 # pass_mgr
 
-A new Flutter project.
+So here is a useful little tool I've been building lately. In this day and age we all struggle with one big issue, password management. We have so many accounts on our social medias, online tools and services etc. And we are adviced to use strong password for each of them, and not the same password everywhere. This creates a problem where we have to remember all our passwords or just store them somewhere. But remembering all these passwords isn't possible and if we are going to store them all we need to have a safe and secure way of saving them. This, is where my app comes into the scene. It's a simple, intuitive and minimal app that can enable us to create, store, edit and delete our passwords for different accounts, and also copy the password to clipboard in a secure way. And every action we do is highly guarded with a strong pin code authentication, the app uses its own internal keyboard to input the pincode (like a master key for all our keys :) ) and it's so secure you can't even copy or paste into it. After that, users can simply enter the title(name) of the social media/online service they're using and the password they use for it. They can also generate a strong 8 digit password with capital letters, numbers and special symbols mixed in. They can generate as many of these as they like, and they can choose whichever they like from these passwords. Also the app uses hive as local database so everything is stored on the phone.
 
-## Getting Started
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
-# password-manager
+If you want to check the app yourself, you can find the build apks (for android) on the [releases page](https://github.com/Dechie/password-manager/releases/tag/v1.0.0):
