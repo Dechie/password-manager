@@ -41,14 +41,6 @@ class _HomePageState extends State<HomePage> {
     var size = MediaQuery.of(context).size;
     return Scaffold(
       backgroundColor: bgGrey,
-      bottomNavigationBar: BottomNavigationBar(
-        items: [
-          BottomNavigationBarItem(
-              icon: const Icon(Icons.place), label: "$isLoading"),
-          BottomNavigationBarItem(
-              icon: const Icon(Icons.place), label: "${items.length}"),
-        ],
-      ),
       appBar: AppBar(
         backgroundColor: mainRed,
         title: const Text(
@@ -67,18 +59,27 @@ class _HomePageState extends State<HomePage> {
         // ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          showModalBottomSheet<Item>(
-            context: context,
-            builder: (context) => ItemForm(
-              size: size,
-              onAddItem: (item) {
-                items.add(item);
-                _hiveServices.addToHive(item);
-                setState(() {});
-              },
-            ),
-          );
+        onPressed: () async {
+          bool authorized =
+              await authorizeMethod(context, size, task: "Add Item");
+
+          if (authorized && context.mounted) {
+            showModalBottomSheet<Item>(
+              context: context,
+              builder: (context) => ItemForm(
+                size: size,
+                onAddItem: (item) {
+                  items.add(item);
+                  _hiveServices.addToHive(item);
+                  setState(() {});
+                },
+              ),
+            );
+          } else {
+            if (context.mounted) {
+              displaySnackbar(context, "Not Authorized! Cannot add item.");
+            }
+          }
         },
         child: const Icon(FontAwesomeIcons.plus),
       ),
@@ -94,26 +95,27 @@ class _HomePageState extends State<HomePage> {
               : items.isEmpty
                   ? Center(
                       child: SizedBox(
-                      height: 80,
-                      child: Column(
-                        children: [
-                          Text(
-                            "No Items So far",
-                            style: titleStyle1.copyWith(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w700,
+                        height: 80,
+                        child: Column(
+                          children: [
+                            Text(
+                              "No Items So far",
+                              style: titleStyle1.copyWith(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
-                          ),
-                          Text(
-                            "Click Below To Add New",
-                            style: titleStyle1.copyWith(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w400,
+                            Text(
+                              "Click Below To Add New",
+                              style: titleStyle1.copyWith(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w400,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ))
+                    )
                   : ListView.builder(
                       itemCount: items.length,
                       itemBuilder: (context, index) {
@@ -152,7 +154,7 @@ class _HomePageState extends State<HomePage> {
                                           task: "Show Password",
                                         ),
                                       );
-                                      if (isAuthorized) {
+                                      if (isAuthorized && context.mounted) {
                                         displaySnackbar(
                                           context,
                                           "authorized",
@@ -160,6 +162,13 @@ class _HomePageState extends State<HomePage> {
                                         setState(() {
                                           showPasswords[index] = true;
                                         });
+                                      } else {
+                                        if (context.mounted) {
+                                          displaySnackbar(
+                                            context,
+                                            "Not Authorized! Cannot Show Password",
+                                          );
+                                        }
                                       }
                                     } else {
                                       setState(() {
@@ -185,15 +194,12 @@ class _HomePageState extends State<HomePage> {
                                     index: index,
                                     size: size,
                                     onPress: () async {
-                                      bool isAuthorized =
-                                          await showModalBottomSheet(
-                                        context: context,
-                                        builder: (context) => PasswordForm(
-                                          size: size,
-                                          task: "Copy To Clipboard",
-                                        ),
+                                      bool isAuthorized = authorizeMethod(
+                                        context,
+                                        size,
+                                        task: "Copy To Clipboard",
                                       );
-                                      if (isAuthorized) {
+                                      if (isAuthorized && context.mounted) {
                                         Clipboard.setData(
                                           ClipboardData(
                                             text: items[index].password,
@@ -222,13 +228,15 @@ class _HomePageState extends State<HomePage> {
                                         size,
                                         task: "Edit Password",
                                       );
-                                      if (isAuthorized) {
+                                      if (isAuthorized && context.mounted) {
                                         editItem(items[index], size);
                                       } else {
-                                        displaySnackbar(
-                                          context,
-                                          "Not authorized!, cannot edit",
-                                        );
+                                        if (context.mounted) {
+                                          displaySnackbar(
+                                            context,
+                                            "Not authorized!, cannot edit",
+                                          );
+                                        }
                                       }
                                     },
                                     iconData: FontAwesomeIcons.penToSquare,
@@ -243,14 +251,16 @@ class _HomePageState extends State<HomePage> {
                                         size,
                                         task: "Delete Item",
                                       );
-                                      if (isAuthored) {
+                                      if (isAuthored && context.mounted) {
                                         deleteMethod(
                                             items[index], index, context);
                                       } else {
-                                        displaySnackbar(
-                                          context,
-                                          "Not authorized!. cannot delete",
-                                        );
+                                        if (context.mounted) {
+                                          displaySnackbar(
+                                            context,
+                                            "Not authorized!. cannot delete",
+                                          );
+                                        }
                                       }
                                     },
                                     iconData: FontAwesomeIcons.trashCan,

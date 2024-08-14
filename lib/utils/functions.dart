@@ -47,6 +47,7 @@ bool displayRemoveSnackbar(
                 callBack();
 
                 ScaffoldMessenger.of(context).removeCurrentSnackBar();
+
               },
               child: const Text(
                 "Undo",

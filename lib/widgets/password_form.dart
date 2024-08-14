@@ -1,41 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:pass_mgr/utils/auth.dart';
 import 'package:pass_mgr/utils/constans.dart';
 
-class NumberButton extends StatelessWidget {
-  final String number;
-  final void Function() onPressed;
-  const NumberButton({
-    super.key,
-    required this.number,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onPressed,
-        child: Container(
-          margin: const EdgeInsets.all(5.0),
-          decoration: BoxDecoration(
-            border: Border.all(
-              width: 2,
-              color: mainDark2,
-            ),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Center(
-            child: Text(
-              number,
-              style: titleStyle3,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
+import 'number_button.dart';
 
 class PasswordForm extends StatefulWidget {
   final Size size;
@@ -54,6 +22,7 @@ class PasswordForm extends StatefulWidget {
 class _PasswordFormState extends State<PasswordForm> {
   final TextEditingController _passController = TextEditingController();
   String password = "";
+  AuthService auth = AuthService();
   @override
   Widget build(BuildContext context) {
     return SizedBox(
@@ -94,6 +63,7 @@ class _PasswordFormState extends State<PasswordForm> {
               ),
               TextField(
                 keyboardType: TextInputType.none,
+                readOnly: true,
                 controller: _passController,
                 decoration: kTextFieldDecoration2.copyWith(
                   hintText: "Input Password",
@@ -239,12 +209,18 @@ class _PasswordFormState extends State<PasswordForm> {
                     Expanded(
                       flex: 1,
                       child: GestureDetector(
-                        onTap: () {
-                          if (_passController.text == "1234") {
-                            Navigator.pop(context, true);
+                        onTap: () async {
+                          bool checkPin =
+                              await auth.checkPin(_passController.text);
+                          if (checkPin) {
+                            if (context.mounted) {
+                              Navigator.pop(context, true);
+                            }
                             // authorized
                           } else {
-                            Navigator.pop(context, false);
+                            if (context.mounted) {
+                              Navigator.pop(context, false);
+                            }
                             // not authorized
                           }
                         },

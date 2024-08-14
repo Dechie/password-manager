@@ -30,7 +30,6 @@ class HiveServices {
         "title": item["title"],
         "password": item["password"],
       };
-      item["key"] = key;
       return Item.fromJson(mapped);
     }).toList();
     print("fetched list type: ${myList.runtimeType}");
