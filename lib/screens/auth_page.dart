@@ -233,7 +233,7 @@ class _AuthPageState extends State<AuthPage> {
                                     _form.currentState!.save();
                                     AuthService auth = AuthService();
                                     auth.register(pin);
-                                    Navigator.of(context).push(
+                                    Navigator.of(context).pushReplacement(
                                       MaterialPageRoute(
                                         builder: (ctx) => const HomePage(),
                                       ),

@@ -353,6 +353,7 @@ class _HomePageState extends State<HomePage> {
 
     print("items length: ${items.length}");
     try {
+      
       List<Item> newItems = await _hiveServices.fetchAll();
       print("newItems length: ${newItems.length}");
       setState(() {

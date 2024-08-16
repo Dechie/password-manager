@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive/hive.dart';
 
 import '../models/item.dart';
@@ -5,7 +8,24 @@ import '../models/item.dart';
 class HiveServices {
   HiveServices();
 
-  Future<Box> get _box async => await Hive.openBox("items");
+  Future<Box> get _box async {
+    const FlutterSecureStorage secureStorage = FlutterSecureStorage();
+    var encryptionKeyString = await secureStorage.read(key: 'hiveKey');
+    if (encryptionKeyString == null || encryptionKeyString.isEmpty) {
+      throw Exception('Encryption key not found');
+    }
+    var encryptionKey = base64Url.decode(encryptionKeyString);
+
+    print("at hive_services, key: $encryptionKey");
+    Box itemsB = await Hive.openBox(
+      "items",
+      encryptionCipher: HiveAesCipher(
+        encryptionKey,
+      ),
+    );
+    itemsB.put("secret", "secure key");
+    return itemsB;
+  }
 
   Future<void> addToHive(Item item) async {
     var box = await _box;
@@ -21,8 +41,12 @@ class HiveServices {
 
   Future<List<Item>> fetchAll() async {
     var box = await _box;
+    print("box opened.");
     final itemsList = [];
-    List<Item> myList = box.keys.map((key) {
+    List<Item> myList =
+        box.keys.where((key) => key != "secret").toList().map((key) {
+      print("item of key: $key");
+
       final item = box.get(key);
 
       Map<String, dynamic> mapped = {
@@ -32,7 +56,6 @@ class HiveServices {
       };
       return Item.fromJson(mapped);
     }).toList();
-    print("fetched list type: ${myList.runtimeType}");
     print(box.values);
 
     return myList;
