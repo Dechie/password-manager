@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive/hive.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../models/item.dart';
 
@@ -31,6 +33,32 @@ class HiveServices {
     var box = await _box;
     await box.add(item.toJson());
     print(box.values);
+  }
+
+  Future<void> backupHiveData() async {
+    var box = await _box;
+    var rawData = box.toMap();
+
+    // Convert the data to a JSON-compatible format
+    var jsonData = rawData.map((key, value) {
+      if (value is Map) {
+        // If the value is a nested map, ensure it is JSON-serializable
+        return MapEntry(
+            key, value.map((k, v) => MapEntry(k.toString(), v.toString())));
+      }
+      return MapEntry(key.toString(),
+          value.toString()); // Convert all other types to strings
+    });
+
+    print("rawData: $rawData");
+    print("jsonData: $jsonData");
+
+    Directory appDocDir = await getApplicationDocumentsDirectory();
+    String backupFilePath = '${appDocDir.path}/hive_backup.json';
+    File backupFile = File(backupFilePath);
+
+    await backupFile.writeAsString(jsonEncode(jsonData.toString()));
+    print('Backup saved to $backupFilePath');
   }
 
   Future<void> deleteFromHive(Item item) async {
@@ -66,17 +94,4 @@ class HiveServices {
     await box.put(item.key, item.toJson());
     print(box.values);
   }
-
-  // hive data backup
-  Future<void> backupHiveData() async {
-    var box = await _box;
-    var data = box.toMap();
-
-    Directory appDocDir = await getApplicationDocumentsDirectory();
-    String backupFilePath = '${appDocDir.path}/hive_backup.json';
-    File backupFile = File(backupFilePath);
-
-    await backupFile.writeAsString(jsonEncode(data));
-    print('Backup saved to $backupFilePath');
-  } 
 }
