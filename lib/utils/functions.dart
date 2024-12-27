@@ -10,12 +10,14 @@ import '../models/item.dart';
 String lower = 'abcdefghijklmnopqrstuvwxyz';
 String numbers = '1234567890';
 String upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+String symbols = '!@#\$%^&*()<>,./';
 
 String checkPasswordStrength(String password) {
   int length = password.length;
   bool hasLower = false;
   bool hasUpper = false;
   bool hasNumber = false;
+  bool hasSymbol = false;
 
   for (int i = 0; i < password.length; i++) {
     if (lower.contains(password[i])) {
@@ -25,6 +27,9 @@ String checkPasswordStrength(String password) {
     } else if (numbers.contains(password[i])) {
       hasNumber = true;
     }
+    if (symbols.contains(password[i])) {
+      hasSymbol = true;
+    }
   }
 
   if (length < 8 || !hasLower || !hasUpper || !hasNumber) {
@@ -33,9 +38,11 @@ String checkPasswordStrength(String password) {
       (hasLower && hasNumber) ||
       (hasUpper && hasNumber)) {
     return "medium";
-  } else {
+  } else if (length >= 8 && (hasLower && hasUpper && hasNumber && hasSymbol)
+  
+  ) {
     return "strong";
-  }
+  } return "weak";
 }
 
 ElevatedButton commonButton({

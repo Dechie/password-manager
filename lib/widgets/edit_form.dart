@@ -24,6 +24,14 @@ class _EditFormState extends State<EditForm> {
   String title = "", password = "";
   bool _generateActivated = false;
   String? generatedPassword;
+
+  String passwordStrength = "weak";
+
+  Map<String, Color> matchStrengthWithColor = {
+    "weak": Colors.red,
+    "medium": Colors.amber,
+    "strong": Colors.green.shade600,
+  };
   @override
   Widget build(BuildContext context) {
     return SizedBox(
@@ -57,12 +65,16 @@ class _EditFormState extends State<EditForm> {
               const SizedBox(height: 20),
               TextField(
                 controller: _passwordController,
-                keyboardType: TextInputType.number,
+                keyboardType: TextInputType.text,
                 decoration: kTextFieldDecoration.copyWith(
                   hintText: "Input Password",
                 ),
                 onChanged: (value) {
                   password = value;
+                  setState(() {
+                    passwordStrength = checkPasswordStrength(password);
+                    print("checking strength $passwordStrength");
+                  });
                 },
               ),
               const Align(
@@ -153,8 +165,6 @@ class _EditFormState extends State<EditForm> {
       ),
     );
   }
-
-  
 
   @override
   void initState() {

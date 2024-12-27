@@ -32,6 +32,12 @@ class _ItemFormState extends State<ItemForm> {
   String? generatedPassword;
   String title = "", password = "";
   Item? oldItem;
+
+  Map<String, Color> matchStrengthWithColor = {
+    "weak": Colors.red,
+    "medium": Colors.amber,
+    "strong": Colors.green.shade600,
+  };
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -67,17 +73,26 @@ class _ItemFormState extends State<ItemForm> {
                   const SizedBox(height: 20),
                   TextField(
                     controller: _passwordController,
-                    keyboardType: TextInputType.number,
+                    keyboardType: TextInputType.text,
                     decoration: kTextFieldDecoration.copyWith(
                       hintText: "Input Password",
                     ),
                     onChanged: (value) {
                       password = value;
+                      setState(() {
+                        passwordStrength = checkPasswordStrength(password);
+                        print("checking strength $passwordStrength");
+                      });
                     },
                   ),
-                  const Align(
+                  const SizedBox(height: 10),
+                  Align(
                     alignment: Alignment.centerRight,
-                    child: Text("weak"),
+                    child: Text(
+                      passwordStrength,
+                      style: TextStyle(
+                          color: matchStrengthWithColor[passwordStrength]),
+                    ),
                   ),
                   //const Spacer(),
                   const SizedBox(height: 15),
