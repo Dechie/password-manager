@@ -5,10 +5,8 @@ Secure Password Manager is a Flutter-based application that provides a secure wa
 ## Features
 
 - Secure storage of passwords using AES encryption
-- Biometric authentication (e.g., fingerprint, face ID) for added security
 - Backup and restore functionality to protect your data
 - Password strength validation to encourage the use of strong passwords
-- Automatic logout after a period of inactivity
 
 ## Getting Started
 
@@ -48,8 +46,6 @@ Secure Password Manager is a Flutter-based application that provides a secure wa
 1. When the app is launched for the first time, you will be prompted to create a PIN code for authentication.
 2. After setting up the PIN, you can start adding, editing, and deleting your passwords.
 3. The app will automatically encrypt your password data using the generated encryption key, which is securely stored in the device's secure storage.
-4. You can enable biometric authentication (e.g., fingerprint, face ID) for faster and more secure access to your passwords.
-5. The app will automatically log you out after a period of inactivity to prevent unauthorized access.
 
 ## Security Considerations
 
