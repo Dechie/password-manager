@@ -6,12 +6,10 @@ import '../utils/functions.dart';
 
 class ItemForm extends StatefulWidget {
   final Size size;
-  final void Function(Item item) onAddItem;
 
   const ItemForm({
     super.key,
     required this.size,
-    required this.onAddItem,
   });
 
   @override
@@ -171,8 +169,10 @@ class _ItemFormState extends State<ItemForm> {
                           ),
                           onPressed: () {
                             if (title.isEmpty || password.isEmpty) return;
-                            widget.onAddItem(Item(title: title, password: password));
-                            Navigator.pop(context);
+                            Navigator.pop<Item>(
+                              context,
+                              Item(title: title, password: password),
+                            );
                           },
                           child: const Text("Save", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                         ),

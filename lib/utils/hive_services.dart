@@ -6,92 +6,82 @@ import 'package:hive/hive.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../models/item.dart';
+import 'crypto_utils.dart';
 
 class HiveServices {
   HiveServices();
 
   Future<Box> get _box async {
     const FlutterSecureStorage secureStorage = FlutterSecureStorage();
-    var encryptionKeyString = await secureStorage.read(key: 'hiveKey');
+    final encryptionKeyString = await secureStorage.read(key: 'hiveKey');
     if (encryptionKeyString == null || encryptionKeyString.isEmpty) {
       throw Exception('Encryption key not found');
     }
-    var encryptionKey = base64Url.decode(encryptionKeyString);
+    final encryptionKey = base64Url.decode(encryptionKeyString);
 
-    print("at hive_services, key: $encryptionKey");
-    Box itemsB = await Hive.openBox(
+    return Hive.openBox(
       "items",
-      encryptionCipher: HiveAesCipher(
-        encryptionKey,
-      ),
+      encryptionCipher: HiveAesCipher(encryptionKey),
     );
-    itemsB.put("secret", "secure key");
-    return itemsB;
   }
 
-  Future<void> addToHive(Item item) async {
-    var box = await _box;
-    await box.add(item.toJson());
-    print(box.values);
+  /// Adds an item and returns its assigned integer key so callers can keep
+  /// their in-memory copy in sync (avoids operating on a stale key of -1).
+  Future<int> addToHive(Item item) async {
+    final box = await _box;
+    return await box.add(item.toJson());
   }
 
-  Future<void> backupHiveData() async {
-    var box = await _box;
-    var rawData = box.toMap();
+  /// Encrypts the full vault with a user-supplied [passphrase] (AES-GCM,
+  /// PBKDF2-derived key) and writes it to the app documents directory.
+  /// Never writes decrypted secrets to disk.
+  Future<String> backupHiveData(String passphrase) async {
+    final box = await _box;
 
-    // Convert the data to a JSON-compatible format
-    var jsonData = rawData.map((key, value) {
+    final entries = <Map<String, dynamic>>[];
+    for (final key in box.keys) {
+      final value = box.get(key);
       if (value is Map) {
-        // If the value is a nested map, ensure it is JSON-serializable
-        return MapEntry(
-            key, value.map((k, v) => MapEntry(k.toString(), v.toString())));
+        entries.add({
+          'title': value['title'],
+          'password': value['password'],
+        });
       }
-      return MapEntry(key.toString(),
-          value.toString()); // Convert all other types to strings
-    });
+    }
 
-    print("rawData: $rawData");
-    print("jsonData: $jsonData");
+    final plaintext = jsonEncode({'version': 1, 'items': entries});
+    final envelope =
+        await CryptoUtils.encryptWithPassphrase(plaintext, passphrase);
 
-    Directory appDocDir = await getApplicationDocumentsDirectory();
-    String backupFilePath = '${appDocDir.path}/hive_backup.json';
-    File backupFile = File(backupFilePath);
-
-    await backupFile.writeAsString(jsonEncode(jsonData.toString()));
-    print('Backup saved to $backupFilePath');
+    final appDocDir = await getApplicationDocumentsDirectory();
+    final backupFilePath = '${appDocDir.path}/vault_backup.enc.json';
+    await File(backupFilePath).writeAsString(envelope, flush: true);
+    return backupFilePath;
   }
 
   Future<void> deleteFromHive(Item item) async {
-    var box = await _box;
+    final box = await _box;
     await box.delete(item.key);
-    print(box.values);
   }
 
   Future<List<Item>> fetchAll() async {
-    var box = await _box;
-    print("box opened.");
-    final itemsList = [];
-    List<Item> myList =
-        box.keys.where((key) => key != "secret").toList().map((key) {
-      print("item of key: $key");
-
+    final box = await _box;
+    final result = <Item>[];
+    for (final key in box.keys) {
       final item = box.get(key);
-
-      Map<String, dynamic> mapped = {
+      // Skip any legacy non-map entries (e.g. the old "secret" marker).
+      if (item is! Map) continue;
+      result.add(Item.fromJson({
         "key": key,
         "title": item["title"],
         "password": item["password"],
-      };
-      return Item.fromJson(mapped);
-    }).toList();
-    print(box.values);
-
-    return myList;
+      }));
+    }
+    return result;
   }
 
   Future<void> updateInHive(Item item) async {
-    var box = await _box;
+    final box = await _box;
     await box.put(item.key, item.toJson());
-    print(box.values);
   }
 }

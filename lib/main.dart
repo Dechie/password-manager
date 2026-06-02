@@ -6,7 +6,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:pass_mgr/utils/auth.dart';
 
 import 'screens/auth_page.dart';
-import 'screens/home.dart';
+import 'screens/unlock_page.dart';
 
 void main() async {
   await Hive.initFlutter();
@@ -67,7 +67,7 @@ class MyApp extends StatelessWidget {
           scrolledUnderElevation: 2,
         ),
       ),
-      home: isAuthed ? const HomePage() : const AuthPage(),
+      home: isAuthed ? const UnlockPage() : const AuthPage(),
     );
   }
 }

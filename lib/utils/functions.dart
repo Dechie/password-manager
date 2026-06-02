@@ -118,18 +118,17 @@ void displaySnackbar(
   );
 }
 
-String generatePassword() {
-  String symbols = '!@#\$%^&*()<>,./';
-  int passLength = 8;
+String generatePassword({int passLength = 16}) {
   String seed = upper + lower + numbers + symbols;
-  String password = '';
   List<String> list = seed.split('').toList();
-  Random rand = Random();
+  // Use a cryptographically secure RNG so generated passwords are not
+  // predictable from the (seedable) default Random.
+  Random rand = Random.secure();
 
+  String password = '';
   for (int i = 0; i < passLength; i++) {
     int index = rand.nextInt(list.length);
     password += list[index];
   }
-  print("current generated: $password");
   return password;
 }

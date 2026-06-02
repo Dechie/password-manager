@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -19,9 +21,117 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   List<Item> items = [];
-  List<bool> showPasswords = [];
+  // Tracks which item keys are currently showing their password.
+  // A Set keyed by item.key eliminates the parallel-list drift that caused
+  // RangeErrors when items and a bool list got out of sync.
+  final Set<int> _visiblePasswords = {};
   final HiveServices _hiveServices = HiveServices();
   bool isLoading = false;
+
+  static const int _clipboardClearSeconds = 45;
+  static const int _passwordHideSeconds = 30;
+  Timer? _clipboardTimer;
+  Timer? _visibilityTimer;
+  String? _copiedValue;
+
+  /// Shows a password and (re)starts the single shared hide-all timer.
+  /// Revealing any additional password resets the countdown so all currently
+  /// visible passwords stay visible for another [_passwordHideSeconds] seconds.
+  void _revealPassword(int key) {
+    setState(() => _visiblePasswords.add(key));
+    _visibilityTimer?.cancel();
+    _visibilityTimer = Timer(
+      const Duration(seconds: _passwordHideSeconds),
+      () => setState(() => _visiblePasswords.clear()),
+    );
+  }
+
+  @override
+  void dispose() {
+    _clipboardTimer?.cancel();
+    _visibilityTimer?.cancel();
+    super.dispose();
+  }
+
+  /// Copies a secret and schedules it to be wiped from the clipboard, but
+  /// only if the clipboard still holds the value we put there.
+  void _copyWithAutoClear(String value) {
+    Clipboard.setData(ClipboardData(text: value));
+    _copiedValue = value;
+    _clipboardTimer?.cancel();
+    _clipboardTimer = Timer(
+      const Duration(seconds: _clipboardClearSeconds),
+      () async {
+        final current = await Clipboard.getData(Clipboard.kTextPlain);
+        if (current?.text == _copiedValue) {
+          await Clipboard.setData(const ClipboardData(text: ''));
+        }
+        _copiedValue = null;
+      },
+    );
+  }
+
+  Future<void> _runBackup() async {
+    final passphrase = await _promptPassphrase();
+    if (passphrase == null || passphrase.isEmpty) return;
+    try {
+      final path = await _hiveServices.backupHiveData(passphrase);
+      if (mounted) displaySnackbar(context, "Encrypted backup saved to $path");
+    } catch (e) {
+      if (mounted) displaySnackbar(context, "Backup failed: $e");
+    }
+  }
+
+  Future<String?> _promptPassphrase() async {
+    final controller = TextEditingController();
+    bool obscure = true;
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          title: const Text("Encrypt backup"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "Choose a passphrase. You'll need it to restore this "
+                "backup — it cannot be recovered if lost.",
+                style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: controller,
+                obscureText: obscure,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: "Backup passphrase",
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(obscure ? Icons.visibility : Icons.visibility_off),
+                    onPressed: () => setLocal(() => obscure = !obscure),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: mainRed,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.pop(ctx, controller.text),
+              child: const Text("Encrypt & Save"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   static const List<Color> _avatarColors = [
     Color(0xFFE53935), Color(0xFF8E24AA), Color(0xFF1E88E5),
@@ -57,11 +167,8 @@ class _HomePageState extends State<HomePage> {
         title: const Text('Password Manager', style: titleStyle2),
         actions: [
           IconButton(
-            tooltip: "Backup Data",
-            onPressed: () async {
-              await _hiveServices.backupHiveData();
-              if (context.mounted) displaySnackbar(context, "Backup completed.");
-            },
+            tooltip: "Encrypted Backup",
+            onPressed: _runBackup,
             color: Colors.white,
             icon: const Icon(FontAwesomeIcons.fileExport, size: 18),
           ),
@@ -78,22 +185,19 @@ class _HomePageState extends State<HomePage> {
             if (context.mounted) displaySnackbar(context, "Not authorized. Cannot add item.");
             return;
           }
-          if (context.mounted) {
-            showModalBottomSheet<Item>(
-              context: context,
-              isScrollControlled: true,
-              backgroundColor: Colors.transparent,
-              builder: (context) => ItemForm(
-                size: size,
-                onAddItem: (item) {
-                  items.add(item);
-                  _hiveServices.addToHive(item);
-                  showPasswords.add(false);
-                  setState(() {});
-                },
-              ),
-            );
-          }
+          if (!context.mounted) return;
+          final newItem = await showModalBottomSheet<Item>(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (context) => ItemForm(size: size),
+          );
+          if (newItem == null || !mounted) return;
+          final key = await _hiveServices.addToHive(newItem);
+          if (!mounted) return;
+          setState(() {
+            items.add(Item(key: key, title: newItem.title, password: newItem.password));
+          });
         },
       ),
       body: isLoading
@@ -184,30 +288,30 @@ class _HomePageState extends State<HomePage> {
                                   Row(
                                     children: [
                                       Text(
-                                        showPasswords[index] ? item.password : obscured,
+                                        _visiblePasswords.contains(item.key) ? item.password : obscured,
                                         style: TextStyle(
                                           color: const Color(0xFF6B7280),
                                           fontSize: 13,
-                                          fontFamily: showPasswords[index] ? 'monospace' : null,
-                                          letterSpacing: showPasswords[index] ? 1.2 : 3.0,
+                                          fontFamily: _visiblePasswords.contains(item.key) ? 'monospace' : null,
+                                          letterSpacing: _visiblePasswords.contains(item.key) ? 1.2 : 3.0,
                                         ),
                                       ),
                                       const SizedBox(width: 4),
                                       GestureDetector(
                                         onTap: () async {
-                                          if (!showPasswords[index]) {
+                                          if (!_visiblePasswords.contains(item.key)) {
                                             final ok = await _authorize("Show Password");
                                             if (ok && context.mounted) {
-                                              setState(() => showPasswords[index] = true);
+                                              _revealPassword(item.key);
                                             } else if (context.mounted) {
                                               displaySnackbar(context, "Not authorized.");
                                             }
                                           } else {
-                                            setState(() => showPasswords[index] = false);
+                                            setState(() => _visiblePasswords.remove(item.key));
                                           }
                                         },
                                         child: Icon(
-                                          showPasswords[index]
+                                          _visiblePasswords.contains(item.key)
                                               ? FontAwesomeIcons.eyeSlash
                                               : FontAwesomeIcons.eye,
                                           size: 13,
@@ -227,8 +331,9 @@ class _HomePageState extends State<HomePage> {
                                   onTap: () async {
                                     final ok = await _authorize("Copy To Clipboard");
                                     if (ok && context.mounted) {
-                                      Clipboard.setData(ClipboardData(text: item.password));
-                                      displaySnackbar(context, "Password copied.");
+                                      _copyWithAutoClear(item.password);
+                                      displaySnackbar(context,
+                                          "Password copied. Clears in ${_clipboardClearSeconds}s.");
                                     } else if (context.mounted) {
                                       displaySnackbar(context, "Not authorized.");
                                     }
@@ -277,22 +382,19 @@ class _HomePageState extends State<HomePage> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Padding(
-        padding: const EdgeInsets.all(6),
-        child: Icon(icon, size: 16, color: color),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Icon(icon, size: 17, color: color),
       ),
     );
   }
 
   void _deleteItem(Item item, int index) {
     setState(() {
-      showPasswords.removeAt(index);
       items.removeAt(index);
+      _visiblePasswords.remove(item.key);
     });
     displayRemoveSnackbar(context, item, "Entry removed", () {
-      setState(() {
-        items.insert(index, item);
-        showPasswords.insert(index, false);
-      });
+      setState(() => items.insert(index, item));
     });
     _hiveServices.deleteFromHive(item);
   }
@@ -320,7 +422,6 @@ class _HomePageState extends State<HomePage> {
       final newItems = await _hiveServices.fetchAll();
       setState(() {
         items = newItems;
-        showPasswords = List.filled(newItems.length, false);
         isLoading = false;
       });
     } catch (e) {

@@ -14,7 +14,7 @@ dependencies:
   flutter_riverpod: ^2.5.1
   font_awesome_flutter: ^10.7.0
   hive: ^2.2.3
-  dio: ^5.5.0+1
+  cryptography: ^2.7.0
   hive_flutter: ^1.1.0
   shared_preferences: ^2.3.1
   flutter_launcher_icons: ^0.13.1

@@ -67,10 +67,11 @@ class _PasswordFormState extends State<PasswordForm> {
   @override
   Widget build(BuildContext context) {
     final pinLen = _passController.text.length;
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
 
     return Container(
       width: widget.size.width,
-      height: widget.size.height * 0.58,
+      height: widget.size.height * 0.58 + bottomInset,
       decoration: const BoxDecoration(
         color: bgGrey,
         borderRadius: BorderRadius.only(
@@ -175,7 +176,7 @@ class _PasswordFormState extends State<PasswordForm> {
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: bottomInset + 12),
         ],
       ),
     );
