@@ -24,39 +24,28 @@ Future<void> setupSecuredStorage() async {
 
   if (!containsEncryptionKey) {
     var key = Hive.generateSecureKey();
-    print("at main: contains key");
-    print("at main: hive generated key: $key");
     try {
-      print("Attempting to write key to storage");
       await st.write(
         key: 'hiveKey',
         value: base64UrlEncode(key),
       );
-
-      print("Successfully wrote key to storage");
-      var myKey = await st.read(key: "hiveKey");
-      print("key: $myKey");
     } catch (e) {
-      print("Failed to write key to storage: $e");
+      // ignore
     }
     keyBase64 = base64UrlEncode(key);
   } else {
-    print("at main: not contain key");
     keyBase64 = await st.read(key: "hiveKey");
   }
 
-  print("at main: encryption key: $keyBase64");
-
   if (keyBase64 == null) {
-    throw Exception(
-        'Failed to retrieve the encryption key from secure storage.');
+    throw Exception('Failed to retrieve the encryption key from secure storage.');
   }
 }
 
 class MyApp extends StatelessWidget {
-  bool isAuthed;
+  final bool isAuthed;
 
-  MyApp({
+  const MyApp({
     super.key,
     this.isAuthed = false,
   });
@@ -64,10 +53,19 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color.fromARGB(255, 255, 4, 50)),
+          seedColor: const Color(0xFFC10124),
+          surface: const Color(0xFFF5F5F7),
+        ),
         useMaterial3: true,
+        fontFamily: 'Roboto',
+        scaffoldBackgroundColor: const Color(0xFFF5F5F7),
+        appBarTheme: const AppBarTheme(
+          elevation: 0,
+          scrolledUnderElevation: 2,
+        ),
       ),
       home: isAuthed ? const HomePage() : const AuthPage(),
     );

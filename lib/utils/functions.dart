@@ -9,8 +9,8 @@ import '../models/item.dart';
 // check password strength functions
 String lower = 'abcdefghijklmnopqrstuvwxyz';
 String numbers = '1234567890';
-String upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 String symbols = '!@#\$%^&*()<>,./';
+String upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 String checkPasswordStrength(String password) {
   int length = password.length;
@@ -32,17 +32,19 @@ String checkPasswordStrength(String password) {
     }
   }
 
-  if (length < 8 || !hasLower || !hasUpper || !hasNumber) {
-    return "weak";
-  } else if (length >= 8 && (hasLower && hasUpper) ||
+  String strength = "weak";
+  if (length < 6 || !hasLower || !hasUpper || !hasNumber) {
+    strength = "weak";
+  }
+  if (length >= 6 && (hasLower && hasUpper) ||
       (hasLower && hasNumber) ||
       (hasUpper && hasNumber)) {
-    return "medium";
-  } else if (length >= 8 && (hasLower && hasUpper && hasNumber && hasSymbol)
-  
-  ) {
-    return "strong";
-  } return "weak";
+    strength = "medium";
+  }
+  if (length >= 6 && (hasLower && hasUpper && hasNumber && hasSymbol)) {
+    strength = "strong";
+  }
+  return strength;
 }
 
 ElevatedButton commonButton({
@@ -54,6 +56,7 @@ ElevatedButton commonButton({
     style: ButtonStyle(
       backgroundColor: const WidgetStatePropertyAll<Color>(mainRed),
       fixedSize: WidgetStatePropertyAll<Size>(Size(width, 40)),
+      
     ),
     onPressed: onPress,
     child: Text(
